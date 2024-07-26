@@ -1,6 +1,6 @@
-# Check if the script is being run with administrator permissions
+# Check if the script is being run with administrator privileges
 If (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    # Create a new process with elevated permissions
+    # Create a new process with elevated privileges
     $newProcess = New-Object System.Diagnostics.ProcessStartInfo
     $newProcess.FileName = "powershell.exe"
     $newProcess.Arguments = "-NoProfile -ExecutionPolicy Bypass -File `"" + $MyInvocation.MyCommand.Path + "`""
@@ -20,7 +20,9 @@ Function Menu {
     Write-Host "2. Activate Windows"
     Write-Host "3. Activate Office"
     Write-Host "4. Debloat Windows 11"
-    Write-Host "5. Exit"
+    Write-Host "5. Basic Programs"
+    Write-Host "6. System Performance Optimization"
+    Write-Host "7. Exit"
     Write-Host "======================"
     $op = Read-Host "Choose an option"
 
@@ -30,7 +32,9 @@ Function Menu {
         2 { ActivateWindowsMenu }
         3 { ActivateOfficeMenu }
         4 { DebloatWindows11 }
-        5 { Exit }
+        5 { BasicPrograms }
+        6 { PerformanceOptimization }
+        7 { Exit }
         Default { Menu }
     }
 }
@@ -51,7 +55,7 @@ Function CleaningAndMaintenance {
     Remove-Item -Path "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Path "C:\Windows\Temp\*" -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -Path "C:\Windows\Prefetch\*" -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Host "Temporary file cleaning completed!"
+    Write-Host "Temporary file cleanup completed!"
 
     Write-Host "Running Disk Cleanup..."
     Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:1" -NoNewWindow -Wait
@@ -62,7 +66,7 @@ Function CleaningAndMaintenance {
     Write-Host "Resetting IP configuration..."
     Invoke-Expression "netsh int ip reset"
 
-    Write-Host "Clearing DNS cache..."
+    Write-Host "Clearing DNS..."
     Invoke-Expression "ipconfig /flushdns"
 
     Write-Host "Running SFC..."
@@ -71,8 +75,16 @@ Function CleaningAndMaintenance {
     Write-Host "Running DISM - ScanHealth..."
     dism /online /cleanup-image /scanhealth
 
-    Write-Host "Running DISM - RestoreHealth (if needed)..."
+    Write-Host "Running DISM - RestoreHealth (if necessary)..."
     dism /online /cleanup-image /restorehealth
+
+    Write-Host "Running Windows Malicious Software Removal Tool..."
+    mrt /F /Q
+
+    Write-Host "Checking and installing Windows updates..."
+    Install-Module -Name PSWindowsUpdate -Force -SkipPublisherCheck
+    Import-Module PSWindowsUpdate
+    Get-WindowsUpdate -Install -AcceptAll -AutoReboot
 
     Write-Host "Updating all Winget packages..."
     winget upgrade --all
@@ -80,7 +92,7 @@ Function CleaningAndMaintenance {
     Write-Host "Registering AppX packages for all users..."
     Get-AppxPackage -AllUsers | Where-Object { $_.InstallLocation -like '*SystemApps*' } | ForEach-Object { Add-AppxPackage -DisableDevelopmentMode -Register "$($_.InstallLocation)\AppXManifest.xml" }
 
-    Write-Host "All tasks completed!"
+    Write-Host "All tasks have been completed!"
     Pause
     Menu
 }
@@ -130,9 +142,9 @@ Function ActivateOfficeMenu {
     Write-Host "ACTIVATE OFFICE"
     Write-Host "======================"
     Write-Host "READ THE WARNINGS CAREFULLY!!!!!!!!!!!!!!!!!!!!"
-    Write-Host "The Office package is an external application to Windows, so it must be installed through the link provided in option 3."
-    Write-Host "YOU MUST COMPLETE THE INSTALLATION PROCEDURE BEFORE ACTIVATION!"
-    Write-Host "IF ONE METHOD DOESN'T WORK, TRY THE OTHER! Office activation can be problematic!"
+    Write-Host "The Office Package is an external application to Windows, so it must be installed using the link provided in option 3."
+    Write-Host "YOU MUST PERFORM THE INSTALLATION PROCEDURE BEFORE ACTIVATION!"
+    Write-Host "IF ONE DOESN'T WORK, TRY THE OTHER! Office tends to have problems activating!"
     Write-Host "1. Method 1"
     Write-Host "2. Method 2"
     Write-Host "3. I don't have Office"
@@ -173,7 +185,7 @@ Function ActivateOfficeMethod1 {
             1 { $KMS_Srv = "kms7.MSGuides.com" }
             2 { $KMS_Srv = "kms8.MSGuides.com" }
             3 { $KMS_Srv = "kms9.MSGuides.com" }
-            Default { Write-Host "Sorry! No support for your version of Office."; Exit }
+            Default { Write-Host "Sorry! Your version of Office is not supported."; Exit }
         }
         cscript //nologo ospp.vbs /sethst:$KMS_Srv > $null
         If ((cscript //nologo ospp.vbs /act) -match "successful") {
@@ -181,7 +193,7 @@ Function ActivateOfficeMethod1 {
             Start-Process "http://MSGuides.com"
             Break
         } Else {
-            Write-Host "Connection to the KMS server failed! Trying to connect to another..."
+            Write-Host "Failed to connect to KMS server! Trying another one..."
             $i++
         }
     } While ($i -le 3)
@@ -202,16 +214,16 @@ Function ActivateOfficeMethod2 {
         cscript ospp.vbs /inslic:"$($lic.FullName)"
     }
 
-    Write-Host "Configuring the KMS port..."
+    Write-Host "Setting the KMS port..."
     cscript ospp.vbs /setprt:1688
 
     Write-Host "Removing the product key..."
     cscript ospp.vbs /unpkey:6F7TH > $null
 
-    Write-Host "Entering the new product key..."
+    Write-Host "Inserting the new product key..."
     cscript ospp.vbs /inpkey:FXYTK-NJJ8C-GB6DW-3DYQT-6F7TH
 
-    Write-Host "Configuring the KMS host..."
+    Write-Host "Setting the KMS host..."
     cscript ospp.vbs /sethst:e8.us.to
 
     Write-Host "Activating Office..."
@@ -233,6 +245,90 @@ Function DebloatWindows11 {
     Invoke-Expression (Invoke-RestMethod 'https://raw.githubusercontent.com/Raphire/Win11Debloat/master/Get.ps1')
     Pause
     Menu
+}
+
+Function BasicPrograms {
+    Write-Host "Installing Google Chrome..."
+    winget install -e --id Google.Chrome
+
+    Write-Host "Installing VLC Media Player..."
+    winget install -e --id VideoLAN.VLC
+
+    Write-Host "Installing Java Runtime Environment..."
+    winget install -e --id Oracle.JavaRuntimeEnvironment
+
+    Write-Host "Installing aTube Catcher..."
+    winget install -e --id DsNET.atube-catcher
+
+    Write-Host "Installing 7-Zip..."
+    winget install -e --id 7zip.7zip
+
+    Write-Host "Installing qBittorrent..."
+    winget install -e --id qBittorrent.qBittorrent
+
+    Write-Host "Installing Adobe Acrobat Reader DC..."
+    winget install -e --id Adobe.Acrobat.Reader.64-bit
+
+    Write-Host "All basic programs have been installed!"
+    Pause
+    Menu
+}
+
+Function PerformanceOptimization {
+    Clear-Host
+    Write-Host "======================"
+    Write-Host "SYSTEM PERFORMANCE OPTIMIZATION"
+    Write-Host "======================"
+    Write-Host "1. Disable unnecessary services"
+    Write-Host "2. Adjust power settings"
+    Write-Host "3. Enable maximum performance mode"
+    Write-Host "4. Return to menu"
+    Write-Host "======================"
+    $op4 = Read-Host "Choose an option"
+
+    Switch ($op4) {
+        1 { DisableServices }
+        2 { AdjustPowerSettings }
+        3 { MaximumPerformance }
+        4 { Menu }
+        Default { PerformanceOptimization }
+    }
+}
+
+Function DisableServices {
+    Write-Host "Disabling unnecessary services..."
+    sc config "DiagTrack" start= disabled
+    sc config "dmwappushservice" start= disabled
+    sc config "TrkWks" start= disabled
+    sc config "WMPNetworkSvc" start= disabled
+    sc stop "DiagTrack"
+    sc stop "dmwappushservice"
+    sc stop "TrkWks"
+    sc stop "WMPNetworkSvc"
+    Write-Host "Services disabled!"
+    Pause
+    PerformanceOptimization
+}
+
+Function AdjustPowerSettings {
+    Write-Host "Adjusting power settings for high performance..."
+    powercfg /change standby-timeout-ac 0
+    powercfg /change hibernate-timeout-ac 0
+    powercfg /change monitor-timeout-ac 0
+    powercfg /change disk-timeout-ac 0
+    powercfg /setactive SCHEME_MIN
+    Write-Host "Power settings adjusted!"
+    Pause
+    PerformanceOptimization
+}
+
+Function MaximumPerformance {
+    Write-Host "Enabling maximum performance mode..."
+    powercfg /duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61
+    powercfg /setactive e9a42b02-d5df-448d-aa00-03f14749eb61
+    Write-Host "Maximum performance mode enabled!"
+    Pause
+    PerformanceOptimization
 }
 
 Menu

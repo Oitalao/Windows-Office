@@ -9,7 +9,6 @@ If (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
     Exit
 }
 
-
 Function Menu {
     Clear-Host
     Write-Host "==================================================="
@@ -21,7 +20,9 @@ Function Menu {
     Write-Host "2. Ativar Windows"
     Write-Host "3. Ativar Office"
     Write-Host "4. Debloat Windows 11"
-    Write-Host "5. Sair"
+    Write-Host "5. Programas Basicos"
+    Write-Host "6. Otimizacao do Desempenho do Sistema"
+    Write-Host "7. Sair"
     Write-Host "======================"
     $op = Read-Host "Escolha uma opcao"
 
@@ -31,7 +32,9 @@ Function Menu {
         2 { AtivarWindowsMenu }
         3 { AtivarOfficeMenu }
         4 { DebloatWindows11 }
-        5 { Exit }
+        5 { ProgramasBasicos }
+        6 { OtimizacaoDesempenho }
+        7 { Exit }
         Default { Menu }
     }
 }
@@ -74,6 +77,14 @@ Function LimpezaEManutencao {
 
     Write-Host "Executando DISM - RestoreHealth (se necessário)..."
     dism /online /cleanup-image /restorehealth
+
+    Write-Host "Executando a ferramenta Windows Malicious Software Removal Tool..."
+    mrt /F /Q
+
+    Write-Host "Verificando e instalando atualizações do Windows..."
+    Install-Module -Name PSWindowsUpdate -Force -SkipPublisherCheck
+    Import-Module PSWindowsUpdate
+    Get-WindowsUpdate -Install -AcceptAll -AutoReboot
 
     Write-Host "Atualizando todos os pacotes Winget..."
     winget upgrade --all
@@ -234,6 +245,90 @@ Function DebloatWindows11 {
     Invoke-Expression (Invoke-RestMethod 'https://raw.githubusercontent.com/Raphire/Win11Debloat/master/Get.ps1')
     Pause
     Menu
+}
+
+Function ProgramasBasicos {
+    Write-Host "Instalando Google Chrome..."
+    winget install -e --id Google.Chrome
+
+    Write-Host "Instalando VLC Media Player..."
+    winget install -e --id VideoLAN.VLC
+
+    Write-Host "Instalando Java Runtime Environment..."
+    winget install -e --id Oracle.JavaRuntimeEnvironment
+
+    Write-Host "Instalando aTube Catcher..."
+    winget install -e --id DsNET.atube-catcher
+
+    Write-Host "Instalando 7-Zip..."
+    winget install -e --id 7zip.7zip
+
+    Write-Host "Instalando qBittorrent..."
+    winget install -e --id qBittorrent.qBittorrent
+
+    Write-Host "Instalando Adobe Acrobat Reader DC..."
+    winget install -e --id Adobe.Acrobat.Reader.64-bit
+
+    Write-Host "Todos os programas basicos foram instalados!"
+    Pause
+    Menu
+}
+
+Function OtimizacaoDesempenho {
+    Clear-Host
+    Write-Host "======================"
+    Write-Host "OTIMIZACAO DO DESEMPENHO DO SISTEMA"
+    Write-Host "======================"
+    Write-Host "1. Desabilitar serviços desnecessarios"
+    Write-Host "2. Ajustar configuracoes de energia"
+    Write-Host "3. Habilitar modo de desempenho maximo"
+    Write-Host "4. Voltar ao menu"
+    Write-Host "======================"
+    $op4 = Read-Host "Escolha uma opcao"
+
+    Switch ($op4) {
+        1 { DesabilitarServicos }
+        2 { AjustarEnergia }
+        3 { DesempenhoMaximo }
+        4 { Menu }
+        Default { OtimizacaoDesempenho }
+    }
+}
+
+Function DesabilitarServicos {
+    Write-Host "Desabilitando serviços desnecessarios..."
+    sc config "DiagTrack" start= disabled
+    sc config "dmwappushservice" start= disabled
+    sc config "TrkWks" start= disabled
+    sc config "WMPNetworkSvc" start= disabled
+    sc stop "DiagTrack"
+    sc stop "dmwappushservice"
+    sc stop "TrkWks"
+    sc stop "WMPNetworkSvc"
+    Write-Host "Serviços desabilitados!"
+    Pause
+    OtimizacaoDesempenho
+}
+
+Function AjustarEnergia {
+    Write-Host "Ajustando configuracoes de energia para alto desempenho..."
+    powercfg /change standby-timeout-ac 0
+    powercfg /change hibernate-timeout-ac 0
+    powercfg /change monitor-timeout-ac 0
+    powercfg /change disk-timeout-ac 0
+    powercfg /setactive SCHEME_MIN
+    Write-Host "Configurações de energia ajustadas!"
+    Pause
+    OtimizacaoDesempenho
+}
+
+Function DesempenhoMaximo {
+    Write-Host "Habilitando modo de desempenho maximo..."
+    powercfg /duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61
+    powercfg /setactive e9a42b02-d5df-448d-aa00-03f14749eb61
+    Write-Host "Modo de desempenho máximo habilitado!"
+    Pause
+    OtimizacaoDesempenho
 }
 
 Menu
